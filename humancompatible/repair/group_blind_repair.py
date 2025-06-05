@@ -257,35 +257,65 @@ def partial_repair(C, e, px, ptx, V, theta_scale, K):
 
     return gamma_dict[loop * L + 3]
 
-def empirical_distribution(sub,x_range):
-    bin=len(x_range)
-    distrition=np.zeros(bin)
+def empirical_distribution(sub, x_range):
+    bin = len(x_range)
+    distribution = np.zeros(bin)
     for i in range(bin):
-        subset=sub[sub['X']==x_range[i]] #bin_value=x_range[i] #sub[(sub['X']>=bin_value)&(sub['X']<bin_value+width)]
-        if subset.shape[0]>0:
-            distrition[i]=sum(subset['W'])
-    if sum(distrition)>0:
-        return distrition/sum(distrition)
-    else:
-        return distrition
+        subset = sub[sub['X'] == x_range[i]]
+        if subset.shape[0] > 0:
+            distribution[i] = sum(subset['W'])
 
-def DisparateImpact(X_test,y_pred):
-    dim=X_test.shape[1]-2
-    df_test=pd.DataFrame(np.concatenate((X_test,y_pred.reshape(-1,1)), axis=1),columns=[*range(dim)]+['S','W','f'])
-    numerator=sum(df_test[(df_test['S']==0)&(df_test['f']==1)]['W'])/sum(df_test[df_test['S']==0]['W'])
-    denominator=sum(df_test[(df_test['S']==1)&(df_test['f']==1)]['W'])/sum(df_test[df_test['S']==1]['W'])
-    return numerator/denominator
+    return distribution / sum(distribution) if sum(distribution) > 0 else distribution
+
+def DisparateImpact(X_test, y_pred):
+    dim = X_test.shape[1] - 2
+    df_test = pd.DataFrame(
+        np.concatenate((X_test, y_pred.reshape(-1, 1)), axis=1),
+        columns=[*range(dim)] + ['S', 'W', 'f'],
+    )
+    numerator = (
+        sum(df_test[(df_test['S'] == 0) & (df_test['f'] == 1)]['W'])
+        / sum(df_test[df_test['S'] == 0]['W'])
+    )
+    denominator = (
+        sum(df_test[(df_test['S'] == 1) & (df_test['f'] == 1)]['W'])
+        / sum(df_test[df_test['S'] == 1]['W'])
+    )
+    return numerator / denominator
     
-def rdata_analysis(rdata,x_range,x_name):
-    rdist=dict()
-    pivot=pd.pivot_table(rdata,index=x_name,values=['W'],aggfunc=[np.sum],observed=False)[("sum",'W')]
-    rdist['x']= np.array([pivot[i] for i in x_range])/sum([pivot[i] for i in x_range]) #empirical_distribution(rdata,x_range)
-    if rdata[rdata['S']==0].shape[0]>0:
-        pivot0=pd.pivot_table(rdata[rdata['S']==0],index=x_name,values=['W'],aggfunc=[np.sum],observed=False)[("sum",'W')]
-        rdist['x_0']=np.array([pivot0[i] if i in list(pivot0.index) else 0 for i in x_range])/sum([pivot0[i] if i in list(pivot0.index) else 0 for i in x_range]) #empirical_distribution(rdata[rdata['S']==0],x_range)
-    if rdata[rdata['S']==1].shape[0]>0:
-        pivot1=pd.pivot_table(rdata[rdata['S']==1],index=x_name,values=['W'],aggfunc=[np.sum],observed=False)[("sum",'W')]
-        rdist['x_1']=np.array([pivot1[i] if i in list(pivot1.index) else 0 for i in x_range])/sum([pivot1[i] if i in list(pivot1.index) else 0 for i in x_range]) #empirical_distribution(rdata[rdata['S']==1],x_range)
+def rdata_analysis(rdata, x_range, x_name):
+    rdist = {}
+
+    pivot = pd.pivot_table(
+        rdata, index=x_name, values=['W'],
+        aggfunc=[np.sum], observed=False
+    )[('sum', 'W')]
+    
+    total = sum(pivot[i] for i in x_range)
+    rdist['x'] = np.array([pivot[i] for i in x_range]) / total
+
+    if (rdata['S'] == 0).any():
+        pivot0 = pd.pivot_table(
+            rdata[rdata['S'] == 0], index=x_name, values=['W'],
+            aggfunc=[np.sum], observed=False
+        )[('sum', 'W')]
+
+        total0 = sum(pivot0[i] if i in pivot0.index else 0 for i in x_range)
+        rdist['x_0'] = np.array(
+            [pivot0[i] if i in pivot0.index else 0 for i in x_range]
+        ) / total0
+
+    if (rdata['S'] == 1).any():
+        pivot1 = pd.pivot_table(
+            rdata[rdata['S'] == 1], index=x_name, values=['W'],
+            aggfunc=[np.sum], observed=False
+        )[('sum', 'W')]
+
+        total1 = sum(pivot1[i] if i in pivot1.index else 0 for i in x_range)
+        rdist['x_1'] = np.array(
+            [pivot1[i] if i in pivot1.index else 0 for i in x_range]
+        ) / total1
+        
     return rdist
 
 def c_generate(x_range):
