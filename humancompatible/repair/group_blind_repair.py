@@ -8,7 +8,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import f1_score
 from operator import itemgetter
 
-#from itertools import chain
+from itertools import chain
 
 
 def normialise(tem_dist):
@@ -342,43 +342,64 @@ def c_generate_higher(x_range, weight):
     
     return C
 
-def projection(df,coupling_matrix,x_range,x_name,var_list):
-    bin=len(x_range)
-    var_list_tmp=var_list[:]
-    var_list_tmp.remove(x_name)
-    var_list_tmp=[x_name]+var_list_tmp # place the var that needs to be repaired the first
-    df=df[var_list_tmp+['S','W','Y']]
-    coupling=coupling_matrix.A1.reshape((bin,bin))
-    df_t=pd.DataFrame(columns=var_list_tmp+['S','W','Y'])
-    for i in range(df.shape[0]):
-        orig=df.iloc[i]
-        loc=np.where([x_range[i]==orig[x_name] for i in range(bin)])[0][0]
-        rows=np.nonzero(coupling[loc,:])[0]
-        sub_dict={x_name:[x_range[r] for r in rows],'W':list(coupling[loc,rows]/(sum(coupling[loc,rows]))*orig['W'])}
-        sub_dict.update({var:[orig[var]]*len(rows) for var in var_list_tmp[1:]+['S','Y']})
-        sub=pd.DataFrame(data=sub_dict, index=rows)
-        df_t=pd.concat([df_t,sub],ignore_index=True)#pd.concat([df_t,samples_groupby(sub,x_list)], ignore_index=True)
-    df_t=df_t.groupby(by=list(chain(*[var_list,'S','Y'])),as_index=False).sum()
-    df_t=df_t[var_list+['S','W','Y']]
-    return df_t
+def projection(df, coupling_matrix, x_range, x_name, var_list):
+    bin = len(x_range)
+    vars_tmp = var_list.copy()
+    vars_tmp.remove(x_name)
+    vars_tmp = [x_name] + vars_tmp # place the var that needs to be repaired the first
+    
+    df = df[vars_tmp + ['S', 'W', 'Y']]
+    coup = coupling_matrix.A.reshape(bin, bin)
 
-def projection_higher(df,coupling_matrix,x_range,x_list,var_list):
+    df_t = pd.DataFrame(columns=vars_tmp + ['S', 'W', 'Y'])
+
+    for _, row in df.iterrows():
+        loc = np.where([x_range[i] == row[x_name] for i in range(bin)])[0][0]
+        rows = np.nonzero(coup[loc, :])[0]
+        
+        sub_dict = {
+            x_name: [x_range[r] for r in rows],
+            'W': list(coup[loc, rows] / coup[loc, rows].sum() * row['W'])
+        }
+        sub_dict.update({var: [row[var]] * len(rows) for var in vars_tmp[1:] + ['S', 'Y']})
+        
+        df_t = pd.concat(
+            [df_t, pd.DataFrame(sub_dict, index=rows)],
+            ignore_index=True
+        )
+    
+    df_t = df_t.groupby(
+        by=list(chain(*[var_list, ['S', 'Y']])),
+        as_index=False
+    ).sum()
+
+    return df_t[var_list + ['S', 'W', 'Y']]
+
+def projection_higher(df, coupling_matrix, x_range, x_list, var_list):
     if set(x_list).issubset(df.columns):
-        df=df.drop(columns=x_list)
-    bin=len(x_range)
-    arg_list=[elem for elem in var_list if elem not in x_list]
-    # df=df.groupby(by=arg_list+['X','S','Y'],as_index=False).sum()
-    df=df[arg_list+['X','S','W','Y']]
-    coupling=coupling_matrix.A1.reshape((bin,bin))
-    df_t=pd.DataFrame(columns=arg_list+['X','S','W','Y'])
-    for i in range(df.shape[0]):
-        orig=df.iloc[i]
-        loc=np.where([x_range[b]==orig['X'] for b in range(bin)])[0][0]
-        #rows=np.nonzero(coupling[loc,:])[0]
-        sub_dict={'X':x_range,'W':list(coupling[loc,:]/(sum(coupling[loc,:]))*orig['W'])}
-        sub_dict.update({var:[orig[var]]*bin for var in arg_list+['S','Y']})
-        sub=pd.DataFrame(data=sub_dict, index=[*range(bin)])
-        df_t=pd.concat([df_t,sub],ignore_index=True) #pd.concat([df_t,samples_groupby(sub,x_list)], ignore_index=True)
+        df = df.drop(columns=x_list)
+    
+    bin = len(x_range)
+    arg_list = [elem for elem in var_list if elem not in x_list]
+    df = df[arg_list + ['X', 'S', 'W', 'Y']]
+    coup = coupling_matrix.A.reshape(bin, bin)
+    
+    df_t = pd.DataFrame(columns=arg_list + ['X', 'S', 'W', 'Y'])
+    
+    for _, row in df.iterrows():
+        loc = np.where([x_range[b] == row['X'] for b in range(bin)])[0][0]
+
+        sub_dict = {
+            'X': x_range,
+            'W': list(coup[loc, :] / coup[loc, :].sum() * row['W'])
+        }
+        sub_dict.update({var: [row[var]] * bin for var in arg_list + ['S', 'Y']})
+
+        df_t = pd.concat(
+            [df_t, pd.DataFrame(sub_dict, index=range(bin))],
+            ignore_index=True
+        )
+    
     return df_t
 
 def postprocess(df,coupling_matrix,x_list,x_range,var_list,var_range,clf,thresh):
