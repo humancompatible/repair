@@ -10,23 +10,26 @@ from operator import itemgetter
 
 #from itertools import chain
 
-def normialise(tem_dist):
-    return [tem_dist[i]/sum(tem_dist) for i in range(len(tem_dist))]
 
-def tmp_generator(gamma_dict,num,q_dict,q_num,L):
-    bin=gamma_dict[0].shape[0]
-    if q_num<=0:
-        q=np.matrix(np.ones((bin,bin)))
-    else:
-        q=q_dict[q_num]
-    tmp_gamma=np.zeros((bin,bin))
-    tmp_q=np.zeros((bin,bin))
+def normialise(tem_dist):
+    total = sum(tem_dist)
+    return [val / total for val in tem_dist]
+
+def tmp_generator(gamma_dict, num, q_dict, q_num, L):
+    bin = gamma_dict[0].shape[0]
+
+    q = np.matrix(np.ones((bin, bin))) if q_num <= 0 else q_dict[q_num]
+
+    tmp_q = np.zeros((bin, bin))
+    tmp_gamma = np.zeros((bin, bin))
+
     for i in range(bin):
         for j in range(bin):
-            tmp_q[i,j]=q.item(i,j)*gamma_dict[num-L-1].item(i,j)/gamma_dict[num-L].item(i,j)
-            tmp_gamma[i,j]=tmp_q[i,j]*gamma_dict[num-1].item(i,j)
-            # tmp_gamma[i,j]=q.item(i,j)*gamma_dict[num-1].item(i,j)*gamma_dict[num-L-1].item(i,j)/gamma_dict[num-L].item(i,j)
-    return np.matrix(tmp_gamma),np.matrix(tmp_q)     
+            denom = gamma_dict[num - L].item(i, j)
+            tmp_q[i, j] = q.item(i, j) * gamma_dict[num - L - 1].item(i, j) / denom
+            tmp_gamma[i, j] = tmp_q[i, j] * gamma_dict[num - 1].item(i, j)
+
+    return np.matrix(tmp_gamma), np.matrix(tmp_q)
 
 def newton(fun,dfun,a, stepmax, tol):
     if abs(fun(a))<=tol: return a
