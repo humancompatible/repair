@@ -273,15 +273,15 @@ def DisparateImpact(X_test, y_pred):
         np.concatenate((X_test, y_pred.reshape(-1, 1)), axis=1),
         columns=[*range(dim)] + ['S', 'W', 'f'],
     )
-    numerator = (
+    num = (
         sum(df_test[(df_test['S'] == 0) & (df_test['f'] == 1)]['W'])
         / sum(df_test[df_test['S'] == 0]['W'])
     )
-    denominator = (
+    den = (
         sum(df_test[(df_test['S'] == 1) & (df_test['f'] == 1)]['W'])
         / sum(df_test[df_test['S'] == 1]['W'])
     )
-    return numerator / denominator
+    return num / den
     
 def rdata_analysis(rdata, x_range, x_name):
     rdist = {}
@@ -402,84 +402,119 @@ def projection_higher(df, coupling_matrix, x_range, x_list, var_list):
     
     return df_t
 
-def postprocess(df,coupling_matrix,x_list,x_range,var_list,var_range,clf,thresh):
-    # df=df.groupby(by=var_list+['X','S','Y'],as_index=False).sum()
-    dim=len(x_list)
-    var_dim=len(var_list)
-    bin=len(x_range)
-    x_loc_dict=dict(zip(x_range,[*range(bin)]))
-    arg_list=[elem for elem in var_list if elem not in x_list]
-    coupling=coupling_matrix.A1.reshape((bin,bin))
-    pred_repaired=dict()
-    for i in range(len(var_range)):
-        if var_dim>1:
-            var_tmp=pd.Series({var_list[d]:var_range[i][d] for d in range(var_dim)})
-            if dim>1:
-                loc=x_loc_dict[tuple(var_tmp[x_list])]
+def postprocess(
+    df, coupling_matrix, x_list, x_range,
+    var_list, var_range, clf, thresh
+):
+    dim = len(x_list)
+    var_dim = len(var_list)
+    bin = len(x_range)
+    x_loc = dict(zip(x_range, range(bin)))
+    arg_list = [elem for elem in var_list if elem not in x_list]
+    coup = coupling_matrix.A1.reshape((bin, bin))
+    
+    pred_repaired = {}
+    
+    for v in var_range:
+        if var_dim > 1:
+            var_tmp = pd.Series({var_list[d]: v[d] for d in range(var_dim)})
+            if dim > 1:
+                loc = x_loc[tuple(var_tmp[x_list])]
             else:
-                loc=x_loc_dict[var_tmp[x_list[0]]]
+                loc = x_loc[var_tmp[x_list[0]]]
         else:
-            var_tmp=pd.Series({var_list[0]:var_range[i]})
-            loc=x_loc_dict[var_tmp[x_list[0]]]
-        sub=pd.DataFrame(x_range,columns=x_list)
+            var_tmp = pd.Series({var_list[0]: v})
+            loc = x_loc[var_tmp[x_list[0]]]
+
+        sub = pd.DataFrame(x_range, columns=x_list)
         for arg in arg_list:
-            sub[arg]=var_tmp[arg] 
-        sub=sub[var_list]
-        totalweight=sum(coupling[loc,:])
-        pred=int(sum(coupling[loc,:]/totalweight*clf.predict(np.array(sub).reshape(-1,var_dim)))>thresh)
-        pred_repaired.update({var_range[i]:pred})
-        # prob=clf.predict_log_proba(np.array(sub).reshape(-1,var_dim)) #log is better
-        # prob0=sum(prob[:,0]*coupling[loc,:]/totalweight)
-        # prob1=sum(prob[:,1]*coupling[loc,:]/totalweight)
-        # pred_repaired.update({var_range[i]:int(prob0<prob1)})
-    if var_dim>1:
-        return np.array(itemgetter(*list(zip(*[df[c] for c in var_list])))(pred_repaired))
-        # return np.array([pred_repaired[tuple(df[var_list].iloc[i])] for i in range(df.shape[0])])
+            sub[arg] = var_tmp[arg]
+        sub = sub[var_list]
+
+        total_w = coup[loc, :].sum()
+        pred = int(
+            np.sum(
+                coup[loc, :] / total_w *
+                clf.predict(sub.to_numpy().reshape(-1, var_dim))
+            ) > thresh
+        )
+        pred_repaired[v] = pred
+
+    if var_dim > 1:
+        keys = list(zip(*[df[c] for c in var_list]))
+        return np.array(itemgetter(*keys)(pred_repaired))
     else:
-        return np.array(itemgetter(*list(df[var_list[0]]))(pred_repaired))
-        # return np.array([pred_repaired[df[var_list[0]].iloc[i]] for i in range(df.shape[0])])
+        keys = list(df[var_list[0]])
+        return np.array(itemgetter(*keys)(pred_repaired))
 
-def DisparateImpact_postprocess(df_test,y_pred_tmp,favorable_label=1):
-    df_test_tmp=df_test[:]
-    df_test_tmp.insert(loc=0, column='f', value=y_pred_tmp)
-    numerator=sum(df_test_tmp[(df_test_tmp['S']==0)&(df_test_tmp['f']==favorable_label)]['W'])/sum(df_test_tmp[df_test_tmp['S']==0]['W'])
-    denominator=sum(df_test_tmp[(df_test_tmp['S']==1)&(df_test_tmp['f']==favorable_label)]['W'])/sum(df_test_tmp[df_test_tmp['S']==1]['W'])
-    if numerator == denominator:
-        return 1
-    return numerator/denominator
+def DisparateImpact_postprocess(df_test, y_pred_tmp, favorable_label=1):
+    df_tmp = df_test.copy()
+    df_tmp.insert(loc=0, column='f', value=y_pred_tmp)
 
-def postprocess_bary(df,coupling_bary_matrix,x_list,x_range,var_list,var_range,clf,thresh):
-    bin=len(x_range)
-    coupling_bary=coupling_bary_matrix.A1.reshape((bin,bin))
-    s0=df[df['S']==0]
-    s1=df[df['S']==1]
-    pi0=s0.shape[0]/df.shape[0]
-    pi1=s1.shape[0]/df.shape[0]
-    coupling0=np.zeros((bin,bin))
-    coupling1=np.zeros((bin,bin))
+    num = (
+        df_tmp[(df_tmp['S'] == 0) & (df_tmp['f'] == favorable_label)]['W'].sum()
+        / df_tmp[df_tmp['S'] == 0]['W'].sum()
+    )
+    den = (
+        df_tmp[(df_tmp['S'] == 1) & (df_tmp['f'] == favorable_label)]['W'].sum()
+        / df_tmp[df_tmp['S'] == 1]['W'].sum()
+    )
+
+    return 1.0 if num == den else num / den
+
+def postprocess_bary(
+    df, coupling_bary_matrix, x_list, x_range,
+    var_list, var_range, clf, thresh
+):
+    bin = len(x_range)
+    coup_bary = coupling_bary_matrix.A1.reshape((bin,bin))
+    s0 = df[df['S'] == 0].copy()
+    s1 = df[df['S'] == 1].copy()
+    pi0 = len(s0) / len(df)
+    pi1 = len(s1) / len(df)
+    
+    coup0 = np.zeros((bin, bin))
+    coup1 = np.zeros((bin, bin))
+
     for i in range(bin):
         for j in range(bin):
             # assume the distance between every two adjacent x indices is the same
-            ind0=int(pi0*i+pi1*j)
-            ind1=int(pi0*j+pi1*i)
-            coupling0[i,ind0]+=coupling_bary[i,j]
-            coupling1[i,ind1]+=coupling_bary[j,i]
+            ind0 = int(pi0 * i + pi1 * j)
+            ind1 = int(pi0 * j + pi1 * i)
+            coup0[i, ind0] += coup_bary[i, j]
+            coup1[i, ind1] += coup_bary[j, i]
 
-    # assess if dist['td{x}_0']==dist['td{x}_1']
-    projectedDist_s0=rdata_analysis(projection_higher(s0,np.matrix(coupling0),x_range,x_list,var_list),x_range,'X')['x_0']
-    projectedDist_s1=rdata_analysis(projection_higher(s1,np.matrix(coupling1),x_range,x_list,var_list),x_range,'X')['x_1']
-    # print('tv distance between projected S-wise distributions',sum(abs(projectedDist_s0-projectedDist_s1))/2)
+    proj0 = projection_higher(
+        s0, np.matrix(coup0), x_range, x_list, var_list
+    )
+    proj1 = projection_higher(
+        s1, np.matrix(coup1), x_range, x_list, var_list
+    )
 
-    s0.insert(loc=0, column='f', value=postprocess(s0,np.matrix(coupling0),x_list,x_range,var_list,var_range,clf,thresh))
-    s1.insert(loc=0, column='f', value=postprocess(s1,np.matrix(coupling1),x_list,x_range,var_list,var_range,clf,thresh))
-    s_concate=pd.concat([s0,s1], ignore_index=False)
-    s_concate.sort_index()
-    return np.array(s_concate['f']),sum(abs(projectedDist_s0-projectedDist_s1))/2
+    tv = (
+        abs(
+            rdata_analysis(proj0, x_range, 'X')['x_0']
+            - rdata_analysis(proj1, x_range, 'X')['x_1']
+        ).sum()
+    ) / 2
 
-def assess_tv(df,coupling_matrix,x_range,x_list,var_list):
-    if len(coupling_matrix) > 0:
-        df_project=projection_higher(df,coupling_matrix,x_range,x_list,var_list)
+    s0.insert(loc=0, column='f', value=postprocess(
+        s0, np.matrix(coup0), x_list, x_range,
+        var_list, var_range, clf, thresh
+    ))
+    s1.insert(loc=0, column='f', value=postprocess(
+        s1, np.matrix(coup1), x_list, x_range,
+        var_list, var_range, clf, thresh
+    ))
+
+    preds = pd.concat([s0, s1]).sort_index()['f'].to_numpy()
+    return preds, tv
+
+def assess_tv(df, coupling_matrix, x_range, x_list, var_list):
+    if len(coupling_matrix):
+        df_proj = projection_higher(df, coupling_matrix, x_range, x_list, var_list)
     else:
-        df_project = df
-    rdist=rdata_analysis(df_project[['X','S','W']],x_range,'X')
-    return sum(abs(rdist['x_0']-rdist['x_1']))/2
+        df_proj = df
+    
+    rdist = rdata_analysis(df_proj[['X', 'S', 'W']], x_range, 'X')
+    return 0.5 * abs(rdist['x_0'] - rdist['x_1']).sum()
