@@ -319,11 +319,27 @@ def rdata_analysis(rdata, x_range, x_name):
     return rdist
 
 def c_generate(x_range):
-    bin=len(x_range)
-    C=np.random.random((bin,bin))
+    bin = len(x_range)
+    C = np.zeros((bin, bin))
+
     for i in range(bin):
         for j in range(bin):
-            C[i,j]=abs(x_range[i]-x_range[j]) 
+            C[i, j] = abs(x_range[i] - x_range[j])
+
+    return C
+
+def c_generate_higher(x_range, weight):
+    bin = len(x_range)
+    dim = len(x_range[0])
+    C = np.zeros((bin, bin))
+
+    for i in range(bin):
+        for j in range(bin):
+            C[i, j] = sum(
+                weight[d] * abs(x_range[i][d] - x_range[j][d])
+                for d in range(dim)
+            )
+    
     return C
 
 def projection(df,coupling_matrix,x_range,x_name,var_list):
@@ -345,15 +361,6 @@ def projection(df,coupling_matrix,x_range,x_name,var_list):
     df_t=df_t.groupby(by=list(chain(*[var_list,'S','Y'])),as_index=False).sum()
     df_t=df_t[var_list+['S','W','Y']]
     return df_t
-
-def c_generate_higher(x_range,weight):
-    bin=len(x_range)
-    dim=len(x_range[0])
-    C=np.random.random((bin,bin))
-    for i in range(bin):
-        for j in range(bin):
-            C[i,j]=sum(weight[d]*abs(x_range[i][d]-x_range[j][d]) for d in range(dim))
-    return C
 
 def projection_higher(df,coupling_matrix,x_range,x_list,var_list):
     if set(x_list).issubset(df.columns):
