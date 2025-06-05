@@ -31,31 +31,38 @@ def tmp_generator(gamma_dict, num, q_dict, q_num, L):
 
     return np.matrix(tmp_gamma), np.matrix(tmp_q)
 
-def newton(fun,dfun,a, stepmax, tol):
-    if abs(fun(a))<=tol: return a
-    for step in range(1, stepmax+1):
-        b=a-fun(a)/dfun(a)
-        if abs(fun(b))<=tol:
+def newton(fun, dfun, a, stepmax, tol):
+    if abs(fun(a)) <= tol:
+        return a
+    
+    for _ in range(1, stepmax + 1):
+        b = a - fun(a) / dfun(a)
+        if abs(fun(b)) <= tol:
             return b
-        else:
-            a = b
+        a = b
+    
     return b 
 
 # simplist
-def baseline(C,e,px,ptx,K):
-    # V is not used
-    bin=len(px)
-    bbm1=np.matrix(np.ones(bin)).T
-    #I=np.where(~(V==0))[0].tolist()
-    xi=np.exp(-C/e)
-    gamma_classic=dict()
-    gamma_classic[0]=np.matrix(xi+1.0e-9)
-    for repeat in range(K):
-        gamma_classic[1+2*repeat]=np.matrix(np.diag((px/(gamma_classic[2*repeat] @ bbm1)).A1))@gamma_classic[2*repeat] #np.diag(dist['x']/sum(gamma_classic.T))@gamma_classic
-        gamma_classic[2+2*repeat]=gamma_classic[1+2*repeat]@np.matrix(np.diag((ptx/(gamma_classic[1+2*repeat].T @ bbm1)).A1))
+def baseline(C, e, px, ptx, K):
+    bin = len(px)
+    bbm1 = np.matrix(np.ones(bin)).T
+    xi = np.exp(-C / e)
 
-    #assess(bin,dist['x'],dist['t_x'],C,V,gamma_classic[2*K])
-    return gamma_classic[2*K]
+    gamma_classic = {}
+    gamma_classic[0] = np.matrix(xi + 1.0e-9)
+
+    for repeat in range(K):
+        gamma_classic[1 + 2 * repeat] = (
+            np.matrix(np.diag((px / (gamma_classic[2 * repeat] @ bbm1)).A1))
+            @ gamma_classic[2 * repeat]
+        )
+        gamma_classic[2 + 2 * repeat] = (
+            gamma_classic[1 + 2 * repeat]
+            @ np.matrix(np.diag((ptx / (gamma_classic[1 + 2 * repeat].T @ bbm1)).A1))
+        )
+
+    return gamma_classic[2 * K]
 
 # our method | total repair
 def total_repair(C,e,px,ptx,V,K):
