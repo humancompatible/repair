@@ -3,7 +3,7 @@ import pandas as pd
 
 from operator import itemgetter
 from itertools import chain
-from .data_analysis import rdata_analysis
+from data_analysis import rdata_analysis
 
 
 def tmp_generator(gamma_dict, num, q_dict, q_num, L):

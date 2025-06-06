@@ -1,8 +1,8 @@
 import numpy as np
 import pandas as pd
 
-from .data_analysis import rdata_analysis
-from .coupling_utils import projection_higher
+from data_analysis import rdata_analysis
+from coupling_utils import projection_higher
 
 
 def DisparateImpact(X_test, y_pred):
