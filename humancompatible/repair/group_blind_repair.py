@@ -4,7 +4,31 @@ from coupling_utils import tmp_generator
 
 
 class GroupBlindRepair:
+    """Group-Blind Repair (GBR) couplings for fairness-aware optimal transport.
+
+    The class provides three variants of the original Sinkhorn-Knopp
+    algorithm described in:
+    https://arxiv.org/abs/2310.11407
+    "Group-blind optimal transport to group parity and its constrained variants":
+    and
+    https://arxiv.org/abs/2410.02840
+    "Overcoming Representation Bias in Fairness-Aware data Repair using Optimal Transport"
+    """
+
     def __init__(self, C, px, ptx, V=None, epsilon=0.01, K=200):
+        """Initialize a Group-Blind Repair solver.
+
+        Args:
+            C (array_like): Square cost matrix (shape [n, n]).
+            px (array_like): Column vector of the source distribution.
+            ptx (array_like): Column vector of the target distribution.
+            V (array_like, optional): Signed imbalance vector (required for
+                total and partial repairs).
+            epsilon (float, optional): Entropic regularisation strength.
+                Defaults to 1e-2.
+            K (int, optional): Maximum number of outer Sinkhorn iterations.
+                Defaults to 200.
+        """
         self.C = np.asarray(C)
         self.px = np.asarray(px).ravel()[:, None]
         self.ptx = np.asarray(ptx).ravel()[:, None]
@@ -14,11 +38,24 @@ class GroupBlindRepair:
         self._gamma = None  # will hold the fitted coupling
     
     def fit_baseline(self):
+        """Fit the baseline (unconstrained) entropic coupling.
+
+        Returns:
+            GroupBlindRepair: The fitted instance.
+        """
         self._gamma = self._baseline_core(self.C, self.eps,
                                           self.px, self.ptx, self.K)
         return self
     
     def fit_total(self):
+        """Fit the total-repair coupling (strict fairness).
+
+        Raises:
+            ValueError: If no V was supplied at construction time.
+
+        Returns:
+            GroupBlindRepair: The fitted instance.
+        """
         if self.V is None:
             raise ValueError("V must be provided for total repair.")
         self._gamma = self._total_core(self.C, self.eps,
@@ -26,6 +63,17 @@ class GroupBlindRepair:
         return self
     
     def fit_partial(self, theta_scale):
+        """Fit the partial-repair coupling (fairness with slack).
+
+        Args:
+            theta_scale (float): Allowable slack theta in the constraint.
+
+        Raises:
+            ValueError: If no V was supplied at construction time.
+
+        Returns:
+            GroupBlindRepair: The fitted instance.
+        """
         if self.V is None:
             raise ValueError("V must be provided for partial repair.")
         self._gamma = self._partial_core(self.C, self.eps,
@@ -34,6 +82,14 @@ class GroupBlindRepair:
         return self
     
     def coupling_matrix(self):
+        """Retrieve the learned transport plan gamma.
+
+        Returns:
+            numpy.ndarray: Copy of the [n, n] coupling matrix.
+
+        Raises:
+            RuntimeError: If no fit_* method has been called yet.
+        """
         if self._gamma is None:
             raise RuntimeError("Call fit_*() first.")
         return self._gamma.copy()
