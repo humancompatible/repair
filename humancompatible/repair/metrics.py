@@ -6,6 +6,15 @@ from coupling_utils import projection_higher
 
 
 def DisparateImpact(X_test, y_pred):
+    """Compute Disparate Impact: P(f=1|S=0)/P(f=1|S=1), weighted by 'W'.
+
+    Args:
+        X_test (ndarray): Shape (n, d+2), columns [..., 'S', 'W'].
+        y_pred (ndarray): Predicted labels, shape (n,).
+
+    Returns:
+        float: DI ratio.
+    """
     dim = X_test.shape[1] - 2
     df_test = pd.DataFrame(
         np.concatenate((X_test, y_pred.reshape(-1, 1)), axis=1),
@@ -22,6 +31,16 @@ def DisparateImpact(X_test, y_pred):
     return num / den
 
 def DisparateImpact_postprocess(df_test, y_pred_tmp, favorable_label=1):
+    """Compute Disparate Impact on a DataFrame after inserting predictions as column 'f'.
+
+    Args:
+        df_test (DataFrame): Contains 'S', 'W', ... columns.
+        y_pred_tmp (ndarray): Predicted labels, shape (n,).
+        favorable_label (int): Label to treat as "positive". Defaults to 1.
+
+    Returns:
+        float: DI ratio, or 1.0 if groups match exactly.
+    """
     df_tmp = df_test.copy()
     df_tmp.insert(loc=0, column='f', value=y_pred_tmp)
 
@@ -37,6 +56,21 @@ def DisparateImpact_postprocess(df_test, y_pred_tmp, favorable_label=1):
     return 1.0 if num == den else num / den
 
 def assess_tv(df, coupling_matrix, x_range, x_list, var_list):
+    """Return total variation between S=0 and S=1 distributions (weighted).
+
+    If a coupling is given, first project via projection_higher; otherwise use original df.
+    Then compute 0.5 * SUM|p0 - p1| over support x_range.
+
+    Args:
+        df (DataFrame): Must contain ['X','S','W'] + var_list.
+        coupling_matrix (matrix or array): Shape (len(x_range), len(x_range)), or empty.
+        x_range (list): Ordered support values for the repaired variable.
+        x_list (list): Column name(s) to repair (univariate if len=1).
+        var_list (list): All column names defining unique rows after projection.
+
+    Returns:
+        float: Total variation distance.
+    """
     if len(coupling_matrix):
         df_proj = projection_higher(df, coupling_matrix, x_range, x_list, var_list)
     else:
