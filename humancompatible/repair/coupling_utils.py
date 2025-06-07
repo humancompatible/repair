@@ -7,6 +7,20 @@ from data_analysis import rdata_analysis
 
 
 def tmp_generator(gamma_dict, num, q_dict, q_num, L):
+    """Compute intermediate gamma and q matrices for iterative coupling updates.
+
+    Args:
+        gamma_dict (dict): Dictionary of previously computed gamma matrices.
+        num (int): Current iteration index for gamma_dict.
+        q_dict (dict): Previously computed q matrices.
+        q_num (int): Index in q_dict corresponding to the current q (<=0 for uniform).
+        L (int): Step size defining the relation between gamma indices.
+
+    Returns:
+        tuple:
+            np.matrix: Updated gamma matrix at index num, shape (bin, bin).
+            np.matrix: Updated q matrix used for this step, shape (bin, bin).
+    """
     bin = gamma_dict[0].shape[0]
 
     q = np.matrix(np.ones((bin, bin))) if q_num <= 0 else q_dict[q_num]
@@ -23,10 +37,25 @@ def tmp_generator(gamma_dict, num, q_dict, q_num, L):
     return np.matrix(tmp_gamma), np.matrix(tmp_q)
 
 def projection(df, coupling_matrix, x_range, x_name, var_list):
+    """Project weighted dataset via a 1D coupling for a single feature.
+
+    Given a DataFrame with columns var_list + ['S', 'W', 'Y'], create a repaired DataFrame
+    where each original row is split according to coupling_matrix and its weight redistributed.
+
+    Args:
+        df (pd.DataFrame): Input data containing columns [*var_list, 'S', 'W', 'Y'].
+        coupling_matrix (np.matrix): 1D coupling of shape (bin, bin) stored as a matrix.
+        x_range (list): Ordered support values for the feature x_name.
+        x_name (str): Name of the feature being repaired.
+        var_list (list): List of all feature column names including x_name.
+
+    Returns:
+        pd.DataFrame: Repaired DataFrame, aggregated by var_list + ['S', 'Y'], with updated 'W'.
+    """
     bin = len(x_range)
     vars_tmp = var_list.copy()
     vars_tmp.remove(x_name)
-    vars_tmp = [x_name] + vars_tmp # place the var that needs to be repaired the first
+    vars_tmp = [x_name] + vars_tmp  # place the var that needs to be repaired the first
     
     df = df[vars_tmp + ['S', 'W', 'Y']]
     coup = coupling_matrix.A.reshape(bin, bin)
@@ -56,6 +85,22 @@ def projection(df, coupling_matrix, x_range, x_name, var_list):
     return df_t[var_list + ['S', 'W', 'Y']]
 
 def projection_higher(df, coupling_matrix, x_range, x_list, var_list):
+    """Project weighted dataset via a higher-dimensional coupling for a multi-feature 'X'.
+
+    This function handles cases where 'X' is a tuple of features (x_list). It replaces columns x_list
+    with a single 'X' column before applying the coupling.
+
+    Args:
+        df (pd.DataFrame): Input data containing columns [*var_list, 'X', 'S', 'W', 'Y'].
+                         If x_list are present, they will be dropped.
+        coupling_matrix (np.matrix): Coupling of shape (bin, bin) for the aggregated 'X'.
+        x_range (list): Ordered support values for 'X' (could be tuples if dim>1).
+        x_list (list): List of feature names combined into 'X'.
+        var_list (list): List of all feature names including those in x_list.
+
+    Returns:
+        pd.DataFrame: Repaired DataFrame with redistributed weights and same columns [*var_list, 'S', 'W', 'Y'].
+    """
     if set(x_list).issubset(df.columns):
         df = df.drop(columns=x_list)
     
@@ -86,6 +131,24 @@ def postprocess(
     df, coupling_matrix, x_list, x_range,
     var_list, var_range, clf, thresh
 ):
+    """Apply classifier on repaired feature space to produce final predictions.
+
+    For each unique combination in var_range, build a sub-DataFrame of all possible x_range,
+    predict with clf, and aggregate predictions via coupling_matrix to decide the final label.
+
+    Args:
+        df (pd.DataFrame): Original data containing var_list + ['S', 'W', 'Y'].
+        coupling_matrix (np.matrix): Coupling of shape (bin, bin).
+        x_list (list): Names of features combined into 'X' (if len(x_list)>1).
+        x_range (list): Support values for the repaired feature(s).
+        var_list (list): All feature names including x_list.
+        var_range (list): Unique combinations of features in var_list to predict on.
+        clf: Fitted classifier with .predict(...) method.
+        thresh (float): Threshold for deciding final label.
+
+    Returns:
+        np.ndarray: Array of predicted labels aligned with df order.
+    """
     dim = len(x_list)
     var_dim = len(var_list)
     bin = len(x_range)
@@ -131,6 +194,26 @@ def postprocess_bary(
     df, coupling_bary_matrix, x_list, x_range,
     var_list, var_range, clf, thresh
 ):
+    """Apply classifier on barycentric coupling and return TV and predictions.
+
+    Splits DataFrame by S=0/1, applies a barycentric coupling to each subgroup,
+    projects distributions, computes total variation, and produces final labels.
+
+    Args:
+        df (pd.DataFrame): Original data containing var_list + ['S', 'W', 'Y'].
+        coupling_bary_matrix (np.matrix): Barycentric coupling of shape (bin, bin).
+        x_list (list): Names of features combined into 'X'.
+        x_range (list): Support values for 'X'.
+        var_list (list): All feature names including x_list.
+        var_range (list): Unique combinations of features in var_list to predict on.
+        clf: Fitted classifier with .predict(...) method.
+        thresh (float): Threshold for final label decision.
+
+    Returns:
+        tuple:
+            np.ndarray: Array of predicted labels aligned with original df.
+            float: Total variation between S=0 and S=1 projected distributions.
+    """
     bin = len(x_range)
     coup_bary = coupling_bary_matrix.A1.reshape((bin,bin))
     s0 = df[df['S'] == 0].copy()
