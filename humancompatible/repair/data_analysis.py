@@ -3,6 +3,20 @@ import pandas as pd
 
 
 def rdata_analysis(rdata, x_range, x_name):
+    """Return overall and S=0/1 weighted distributions over x_range.
+
+    Args:
+        rdata (DataFrame): Must contain columns [x_name, 'S', 'W'].
+        x_range (list): Ordered support values for the variable x_name.
+        x_name (str): Column name in rdata whose distribution is computed.
+
+    Returns:
+        dict: {
+            'x' (np.ndarray): overall distribution,
+            'x_0' (np.ndarray): distribution for S=0 (if present),
+            'x_1' (np.ndarray): distribution for S=1 (if present)
+        }
+    """
     rdist = {}
 
     pivot = pd.pivot_table(
@@ -38,8 +52,18 @@ def rdata_analysis(rdata, x_range, x_name):
     return rdist
 
 def empirical_distribution(sub, x_range):
+    """Compute the empirical distribution of 'X' over a support from a subset.
+
+    Args:
+        sub (DataFrame): Must contain columns ['X', 'W'].
+        x_range (list): Ordered support values for column 'X'.
+
+    Returns:
+        np.ndarray: Distribution over x_range, or zeros if empty.
+    """
     bin = len(x_range)
     distribution = np.zeros(bin)
+
     for i in range(bin):
         subset = sub[sub['X'] == x_range[i]]
         if subset.shape[0] > 0:
