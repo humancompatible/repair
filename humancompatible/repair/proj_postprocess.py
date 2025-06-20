@@ -23,9 +23,6 @@ class Projpostprocess:
 
         self.linspace_range = kwargs.get('linspace_range', (0.01, 0.1))
         self.theta = kwargs.get('theta', 1e-2)
-        print("EXTRA PARAMS ===========================")
-        print(self.linspace_range)
-        print(self.theta)
 
         df_test=pd.DataFrame(np.concatenate((X_test,y_test.reshape(-1,1)), axis=1),columns=var_list+['S','W','Y'])
         df_test=df_test.groupby(by=var_list+['S','Y'],as_index=False).sum()
