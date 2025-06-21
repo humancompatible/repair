@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def normialise(tem_dist):
+def normalise(tem_dist):
     """Normalise a list so it sums to 1.
 
     Args:

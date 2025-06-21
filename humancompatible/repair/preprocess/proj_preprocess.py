@@ -2,10 +2,10 @@ import numpy as np
 
 from aif360.datasets import BinaryLabelDataset
 
-from cost import c_generate, c_generate_higher
-from data_analysis import rdata_analysis
+from methods.cost import c_generate, c_generate_higher
+from methods.data_analysis import rdata_analysis
 from group_blind_repair import GroupBlindRepair
-from coupling_utils import projection, projection_higher
+from methods.coupling_utils import projection, projection_higher
 
 
 class Projpreprocess:

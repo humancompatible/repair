@@ -79,4 +79,14 @@ def assess_tv(df, coupling_matrix, x_range, x_list, var_list):
     rdist = rdata_analysis(df_proj[['X', 'S', 'W']], x_range, 'X')
     return 0.5 * abs(rdist['x_0'] - rdist['x_1']).sum()
 
-
+def newton(fun, dfun, a, stepmax, tol):
+    if abs(fun(a)) <= tol:
+        return a
+    
+    for _ in range(1, stepmax + 1):
+        b = a - fun(a) / dfun(a)
+        if abs(fun(b)) <= tol:
+            return b
+        a = b
+    
+    return b

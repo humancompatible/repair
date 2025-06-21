@@ -1,6 +1,7 @@
 import numpy as np
 
-from coupling_utils import tmp_generator
+from methods.coupling_utils import tmp_generator
+from methods.metrics import newton
 
 
 class GroupBlindRepair:
@@ -141,7 +142,7 @@ class GroupBlindRepair:
             dfun = lambda z: sum(
                 gamma_dict[2].item(i, j) * (V.item(i) ** 2) * np.exp(z * V.item(i)) for i in I
             )
-            nu = GroupBlindRepair._newton(fun, dfun, 0, stepmax=50, tol=1.0e-9) 
+            nu = newton(fun, dfun, 0, stepmax=50, tol=1.0e-9) 
             for i in I:
                 gamma_dict[3][i, j] = np.exp(nu * V.item(i)) * gamma_dict[2].item(i, j)
 
@@ -189,7 +190,7 @@ class GroupBlindRepair:
                 dfun = lambda z: sum(
                     tmp.item(i, j) * (V.item(i) ** 2) * np.exp(z * V.item(i)) for i in I
                 )
-                nu = GroupBlindRepair._newton(fun, dfun, 0, stepmax=50, tol=1.0e-9)
+                nu = newton(fun, dfun, 0, stepmax=50, tol=1.0e-9)
                 for i in I:
                     gamma_dict[loop * L + 3][i, j] = (
                         np.exp(nu * V.item(i)) * tmp.item(i, j)
@@ -226,7 +227,7 @@ class GroupBlindRepair:
             dfun = lambda z: -sum(
                 gamma_dict[2].item(i, j) * (V.item(i) ** 2) * np.exp(-z * V.item(i)) for i in I
             )
-            nu = GroupBlindRepair._newton(fun, dfun, 0, stepmax=50, tol=1.0e-9)
+            nu = newton(fun, dfun, 0, stepmax=50, tol=1.0e-9)
             for i in I:
                 gamma_dict[3][i, j] = np.exp(-nu * V.item(i)) * gamma_dict[2].item(i, j)
         
@@ -237,7 +238,7 @@ class GroupBlindRepair:
             dfun = lambda z: -sum(
                 gamma_dict[2].item(i, j) * (V.item(i) ** 2) * np.exp(-z * V.item(i)) for i in I
             )
-            nu = GroupBlindRepair._newton(fun, dfun, 0, stepmax=50, tol=1.0e-9)
+            nu = newton(fun, dfun, 0, stepmax=50, tol=1.0e-9)
             for i in I:
                 gamma_dict[3][i, j] = np.exp(-nu * V.item(i)) * gamma_dict[2].item(i, j)
 
@@ -286,7 +287,7 @@ class GroupBlindRepair:
                 dfun = lambda z: -sum(
                     tmp.item(i, j) * (V.item(i) ** 2) * np.exp(-z * V.item(i)) for i in I
                 )
-                nu = GroupBlindRepair._newton(fun, dfun, 0, stepmax=50, tol=1.0e-9)
+                nu = newton(fun, dfun, 0, stepmax=50, tol=1.0e-9)
                 for i in I:
                     gamma_dict[loop * L + 3][i, j] = (
                         np.exp(-nu * V.item(i)) * tmp.item(i, j)
@@ -299,7 +300,7 @@ class GroupBlindRepair:
                 dfun = lambda z: -sum(
                     tmp.item(i, j) * (V.item(i) ** 2) * np.exp(-z * V.item(i)) for i in I
                 )
-                nu = GroupBlindRepair._newton(fun, dfun, 0, stepmax=50, tol=1.0e-9)
+                nu = newton(fun, dfun, 0, stepmax=50, tol=1.0e-9)
                 for i in I:
                     gamma_dict[loop * L + 3][i, j] = (
                         np.exp(-nu * V.item(i)) * tmp.item(i, j)
@@ -308,16 +309,3 @@ class GroupBlindRepair:
             gamma_dict[loop * L + 3] = np.matrix(gamma_dict[loop * L + 3])
 
         return gamma_dict[loop * L + 3]
-
-    @staticmethod
-    def _newton(fun, dfun, a, stepmax, tol):
-        if abs(fun(a)) <= tol:
-            return a
-        
-        for _ in range(1, stepmax + 1):
-            b = a - fun(a) / dfun(a)
-            if abs(fun(b)) <= tol:
-                return b
-            a = b
-        
-        return b 

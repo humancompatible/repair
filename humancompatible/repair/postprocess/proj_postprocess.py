@@ -3,11 +3,11 @@ import pandas as pd
 
 from sklearn.metrics import f1_score
 
-from cost import c_generate, c_generate_higher
-from data_analysis import rdata_analysis
+from methods.cost import c_generate, c_generate_higher
+from methods.data_analysis import rdata_analysis
 from group_blind_repair import GroupBlindRepair
-from coupling_utils import postprocess, postprocess_bary
-from metrics import assess_tv, DisparateImpact_postprocess
+from methods.coupling_utils import postprocess, postprocess_bary
+from methods.metrics import assess_tv, DisparateImpact_postprocess
 
 
 class Projpostprocess:
