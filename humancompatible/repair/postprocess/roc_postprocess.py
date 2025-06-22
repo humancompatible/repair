@@ -6,7 +6,7 @@ from sklearn.metrics import f1_score
 from aif360.datasets import BinaryLabelDataset
 from aif360.algorithms.postprocessing.reject_option_classification import RejectOptionClassification
 
-from methods.metrics import DisparateImpact_postprocess
+from humancompatible.repair.methods.metrics import DisparateImpact_postprocess
 
 
 class ROCpostprocess:

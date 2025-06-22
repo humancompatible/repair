@@ -1,7 +1,7 @@
 import numpy as np
 
-from methods.coupling_utils import tmp_generator
-from methods.metrics import newton
+from humancompatible.repair.methods.coupling_utils import tmp_generator
+from humancompatible.repair.methods.metrics import newton
 
 
 class GroupBlindRepair:
