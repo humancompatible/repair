@@ -10,6 +10,7 @@ import ot
 
 class DistributionalRepair(Transformer):
     """Distributional Repair class for mitigating bias in datasets.
+
     Adapted from the work of Abigail Longbridge et al.
     https://arxiv.org/pdf/2403.13864
     This class implements the Distributional Repair algorithm to mitigate bias
@@ -18,15 +19,15 @@ class DistributionalRepair(Transformer):
     """
 
     def __init__(self, s, u, x, y, continuous_features, n_q=250):
-        """
-        Initialize the Distributional Repair transformer.
+        """Initialize the Distributional Repair transformer.
+
         Args:
-        s (str): Name of the protected attribute.
-        u (str): Name of the unprotected variable.
-        x (list): List of feature names to be repaired (remaining observations).
-        y (str): Name of the outcome variable.
-        continuous_features (list): List of continuous feature names.
-        n_q (int, optional): Number of probability function supports. Defaults to 250.
+            s (str): Name of the protected attribute.
+            u (str): Name of the unprotected variable.
+            x (list): List of feature names to be repaired (remaining observations).
+            y (str): Name of the outcome variable.
+                continuous_features (list): List of continuous feature names.
+            n_q (int, optional): Number of probability function supports. Defaults to 250.
         """
         super(DistributionalRepair, self).__init__()
         self.s = s
@@ -38,8 +39,10 @@ class DistributionalRepair(Transformer):
 
     def fit(self, dataset_R):
         """Fit the Distributional Repair transformer to create an optimal transport plan from the reference dataset.
+
         Args:
             dataset_R (StandardDataset): Dataset to fit the transformer.
+
         Returns:
             self: Fitted transformer.
         """
@@ -83,8 +86,10 @@ class DistributionalRepair(Transformer):
 
     def transform(self, dataset_D):
         """Transform the dataset to apply the OT plan.
+
         Args:
             dataset_D (StandardDataset): Dataset to be transformed.
+
         Returns:
             StandardDataset: Transformed dataset with bias mitigated.
         """
@@ -112,9 +117,11 @@ class DistributionalRepair(Transformer):
 
     def fit_transform(self, dataframe_R, dataframe_A):
         """Fit and transform the datasets.
+
         Args:
             dataframe_R (DataFrame): Reference dataset.
             dataframe_A (DataFrame): Dataset to be transformed.
+
         Returns:
             tuple: Transformed reference dataset and transformed dataset.
         """
