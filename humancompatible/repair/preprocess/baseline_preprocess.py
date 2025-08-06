@@ -17,7 +17,7 @@ class Baselinepreprocess:
     Disparate Impact and F1 scores.
 
     Parameters:
-        train, test (CompasDataset): The dataset to be evaluated.
+        train, test (aif360.datasets.BinaryLabelDataset): The dataset to be evaluated.
         pa (str): The name of the protected attribute (e.g., 'sex', 'race').
    
     Methods:
@@ -46,7 +46,7 @@ class Baselinepreprocess:
                         Must be one of ['origin', 'RW', 'DIremover', 'LFR'].
 
         Returns:
-            CompasDataset: The processed training and test data.
+            aif360.datasets.BinaryLabelDataset: The processed training and test data.
         """
         test_tranf = self.test.copy()
         if method == 'RW':
@@ -77,7 +77,7 @@ class Baselinepreprocess:
                         Must be one of ['origin', 'RW', 'DIremover', 'LFR'].
 
         Returns:
-            y_pred (CompasDataset): Predictions on the test data.
+            y_pred (aif360.datasets.BinaryLabelDataset): Predictions on the test data.
             di (float): Disparate Impact computed on the (processed) training data.
         """
         test_tranf = self.test.copy()
@@ -108,7 +108,7 @@ class Baselinepreprocess:
         Computes Disparate Impact of the given dataset.
 
         Parameters:
-            data (CompasDataset).
+            data (aif360.datasets.BinaryLabelDataset).
         """
         di = pd.DataFrame({'S':data.protected_attributes.ravel().tolist(),
             'Y':data.labels.ravel().tolist(),
