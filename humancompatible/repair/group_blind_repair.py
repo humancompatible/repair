@@ -151,8 +151,9 @@ class GroupBlindRepair:
         #=========================
         L = 3
         q_dict = {}
+        last_key = 3
 
-        for loop in range(1,K):
+        for loop in range(1, K):
             if np.any(gamma_dict[(loop - 1) * L + 1] == 0):
                 break
 
@@ -162,6 +163,7 @@ class GroupBlindRepair:
             gamma_dict[loop * L + 1] = (
                 np.matrix(np.diag((px / (tmp @ bbm1)).A1)) @ tmp
             )
+            last_key = loop * L + 1
 
             if np.any(gamma_dict[(loop - 1) * L + 2] == 0):
                 break
@@ -172,6 +174,7 @@ class GroupBlindRepair:
             gamma_dict[loop * L + 2] = tmp @ np.matrix(
                 np.diag((ptx / (tmp.T @ bbm1)).A1)
             )
+            last_key = loop * L + 2
 
             # step 3
             if np.any(gamma_dict[(loop - 1) * L + 3] == 0):
@@ -197,8 +200,9 @@ class GroupBlindRepair:
                     )
 
             gamma_dict[loop * L + 3] = np.matrix(gamma_dict[loop * L + 3])
+            last_key = loop * L + 3
 
-        return gamma_dict[loop * L + 3]
+        return gamma_dict[last_key]
 
     @staticmethod
     def _partial_core(C, e, px, ptx, V, theta_scale, K):
@@ -247,32 +251,31 @@ class GroupBlindRepair:
         #=========================
         L = 3
         q_dict = {}
+        last_key = 3  # we already built gamma_dict[3] above
 
         for loop in range(1, K):
             if np.any(gamma_dict[(loop - 1) * L + 1] == 0):
                 break
-
             tmp, q_dict[(loop - 1) * L + 1] = tmp_generator(
                 gamma_dict, loop * L + 1, q_dict, (loop - 2) * L + 1, L
             )
             gamma_dict[loop * L + 1] = (
                 np.matrix(np.diag((px / (tmp @ bbm1)).A1)) @ tmp
             )
+            last_key = loop * L + 1
 
             if np.any(gamma_dict[(loop - 1) * L + 2] == 0):
                 break
-
             tmp, q_dict[(loop - 1) * L + 2] = tmp_generator(
                 gamma_dict, loop * L + 2, q_dict, (loop - 2) * L + 2, L
             )
             gamma_dict[loop * L + 2] = tmp @ np.matrix(
                 np.diag((ptx / (tmp.T @ bbm1)).A1)
             )
+            last_key = loop * L + 2
 
-            # step 3
             if np.any(gamma_dict[(loop - 1) * L + 3] == 0):
                 break
-            
             tmp, q_dict[(loop - 1) * L + 3] = tmp_generator(
                 gamma_dict, loop * L + 3, q_dict, (loop - 2) * L + 3, L
             )
@@ -292,7 +295,7 @@ class GroupBlindRepair:
                     gamma_dict[loop * L + 3][i, j] = (
                         np.exp(-nu * V.item(i)) * tmp.item(i, j)
                     )
-            
+
             for j in Jminus:
                 fun = lambda z: sum(
                     tmp.item(i, j) * V.item(i) * np.exp(-z * V.item(i)) for i in I
@@ -307,5 +310,6 @@ class GroupBlindRepair:
                     )
 
             gamma_dict[loop * L + 3] = np.matrix(gamma_dict[loop * L + 3])
+            last_key = loop * L + 3
 
-        return gamma_dict[loop * L + 3]
+        return gamma_dict[last_key]
