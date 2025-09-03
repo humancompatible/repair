@@ -26,7 +26,7 @@ class DistributionalRepair(Transformer):
             u (str): Name of the unprotected variable.
             x (list): List of feature names to be repaired (remaining observations).
             y (str): Name of the outcome variable.
-                continuous_features (list): List of continuous feature names.
+            continuous_features (list): List of continuous feature names.
             n_q (int, optional): Number of probability function supports. Defaults to 250.
         """
         super(DistributionalRepair, self).__init__()
@@ -223,7 +223,7 @@ class DistributionalRepair(Transformer):
 
         if not j_split:
             if np.sum(T[i]) > 0.0:
-                j = np.random.choice(T.shape[1], p=(T[i] / np.sum(T[i]))) # stochastic choice of which marginal entry to transport to
+                j = np.random.choice(T.shape[1], p=(T[i] / np.sum(T[i])))  # stochastic choice of which marginal entry to transport to
             else:
                 j = i
             x_repaired = support_j[j]
